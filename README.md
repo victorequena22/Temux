@@ -148,6 +148,26 @@ docker run -d \
 
 ---
 
+## 🎓 Portal Automático por Cédula (UCLA - Programación I)
+
+Sistema bajo demanda (*on-demand*): En lugar de tener 136 contenedores encendidos gastando memoria, el sistema **crea y enciende el contenedor de cada alumno únicamente cuando este inicia sesión con su cédula**. Su cédula es también su contraseña de acceso a VS Code.
+
+### ¿Cómo funciona para tus alumnos?
+1. Los alumnos entran desde su navegador a:
+   `http://<IP_DEL_PROFESOR>:3000` (o al puerto 80 con Caddy).
+2. Ingresan su **Cédula de Identidad**.
+3. El sistema valida si está en la lista oficial (Secciones 1, 2 y 3), enciende su contenedor personal en 1 segundo y lo redirige automáticamente a su VS Code.
+4. En VS Code, el alumno introduce su **Cédula** como contraseña.
+5. Todo su trabajo se guarda en la carpeta local del profesor: `./alumnos/<cedula>/project`.
+
+### ¿Cómo iniciarlo como profesor?
+* **En Windows:** Haz doble clic en `iniciar-portal.bat` (o ejecuta `node portal.js`).
+* **En Linux / Mac / WSL:** Ejecuta `./iniciar-portal.sh`.
+* **Panel de Control del Profesor:** Abre en tu navegador `http://localhost:3000/admin` para ver en tiempo real quiénes están conectados y apagar todas las instancias al terminar la clase.
+
+
+---
+
 ## 👨‍🏫 Modo Profesor: Aulas Virtuales Multi-Alumno
 
 Si enseñas programación y quieres que **cada alumno tenga su propio VS Code independiente**, puedes crear decenas de instancias aisladas en segundos.

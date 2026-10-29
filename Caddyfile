@@ -1,0 +1,17 @@
+# ==============================================================================
+# Caddyfile: Proxy inverso para el Portal de Programación I (UCLA)
+# ==============================================================================
+
+:80 {
+    # Redirigir tráfico del puerto 80 al portal de alumnos (puerto 3000)
+    reverse_proxy localhost:3000
+
+    # Compresión automática
+    encode gzip zstd
+
+    # Logs de acceso
+    log {
+        output stdout
+        format console
+    }
+}
