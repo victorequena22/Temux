@@ -146,3 +146,46 @@ docker run -d \
 * Abre tu navegador en `http://localhost:8080` (o `http://<IP_DE_TU_PC>:8080`).
 * Contraseña: `admin`.
 
+---
+
+## 👨‍🏫 Modo Profesor: Aulas Virtuales Multi-Alumno
+
+Si enseñas programación y quieres que **cada alumno tenga su propio VS Code independiente**, puedes crear decenas de instancias aisladas en segundos.
+
+### Características para el profesor:
+* **Entornos 100% aislados:** Cada alumno tiene su propio puerto, contraseña y carpeta de proyectos independiente.
+* **Control de recursos:** Cada contenedor está limitado a 512 MB de RAM y 0.75 CPU para evitar que bucles infinitos de los alumnos saturen el servidor del profesor.
+* **Revisión de tareas:** Puedes acceder directamente a las carpetas `./alumnos/<alumno>/project` para revisar y calificar el código de cada estudiante.
+* **Generación de credenciales:** Genera un archivo `.txt` y un archivo `.csv` compatible con Excel para repartir a tus alumnos.
+
+### Uso en Windows (PowerShell):
+```powershell
+# 1. Crear instancias para 20 alumnos (o con un archivo: .\alumnos.ps1 crear lista.txt)
+.\alumnos.ps1 crear 20
+
+# 2. Iniciar el aula
+.\alumnos.ps1 iniciar
+
+# 3. Ver credenciales y URLs de todos los alumnos
+.\alumnos.ps1 credenciales
+
+# 4. Detener el aula al terminar la clase
+.\alumnos.ps1 detener
+```
+
+### Uso en Linux / Mac / WSL / Git Bash:
+```bash
+# 1. Crear instancias para 20 alumnos
+bash alumnos.sh crear 20
+
+# 2. Iniciar el aula
+bash alumnos.sh iniciar
+
+# 3. Ver credenciales
+bash alumnos.sh credenciales
+
+# 4. Detener el aula
+bash alumnos.sh detener
+```
+
+

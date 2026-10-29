@@ -1,0 +1,206 @@
+# ==============================================================================
+# Script de Gestión de Aulas Virtuales para Windows PowerShell
+# code-server para Alumnos en Docker
+# ==============================================================================
+
+param (
+    [Parameter(Position=0)]
+    [string]$Accion = "ayuda",
+
+    [Parameter(Position=1)]
+    [string]$Parametro = ""
+)
+
+$ComposeFile = "docker-compose.alumnos.yml"
+$CredsFile   = "credenciales_alumnos.txt"
+$CredsCsv    = "credenciales_alumnos.csv"
+$BasePort    = 8080
+$AlumnosDir  = "./alumnos"
+
+function Obtener-IPLocal {
+    $ip = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias "Wi-Fi*", "Ethernet*", "vEthernet*" 2>$null | 
+           Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" } | 
+           Select-Object -First 1).IPAddress
+    if (-not $ip) { $ip = "localhost" }
+    return $ip
+}
+
+function Mostrar-Ayuda {
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "  Gestor de Entornos code-server para Alumnos" -ForegroundColor Yellow
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "Comandos disponibles:"
+    Write-Host "  .\alumnos.ps1 crear 15                 - Crea instancias para 15 alumnos" -ForegroundColor Green
+    Write-Host "  .\alumnos.ps1 crear alumnos.txt        - Crea instancias desde un archivo de texto" -ForegroundColor Green
+    Write-Host "  .\alumnos.ps1 iniciar                  - Enciende todas las instancias de la clase" -ForegroundColor Green
+    Write-Host "  .\alumnos.ps1 detener                  - Apaga todas las instancias" -ForegroundColor Green
+    Write-Host "  .\alumnos.ps1 reiniciar                - Reinicia las instancias" -ForegroundColor Green
+    Write-Host "  .\alumnos.ps1 estado                   - Muestra el estado de cada contenedor" -ForegroundColor Green
+    Write-Host "  .\alumnos.ps1 credenciales             - Muestra las URLs y contraseñas de acceso" -ForegroundColor Green
+    Write-Host "  .\alumnos.ps1 limpiar                  - Elimina contenedores (conserva tareas)" -ForegroundColor Red
+    Write-Host "====================================================`n" -ForegroundColor Cyan
+}
+
+switch ($Accion.ToLower()) {
+    "crear" {
+        if (-not $Parametro) {
+            Write-Host "[ERROR] Debes especificar la cantidad de alumnos o la ruta a un archivo de texto." -ForegroundColor Red
+            Write-Host "Ejemplo: .\alumnos.ps1 crear 20"
+            exit 1
+        }
+
+        Write-Host "[*] Construyendo imagen temux-code-server:alpine si es necesario..." -ForegroundColor Cyan
+        docker build -t temux-code-server:alpine .
+
+        $listaAlumnos = @()
+
+        if (Test-Path $Parametro) {
+            Write-Host "[*] Leyendo lista de alumnos desde: $Parametro" -ForegroundColor Cyan
+            $lineas = Get-Content $Parametro
+            foreach ($linea in $lineas) {
+                $limpio = $linea.Trim()
+                if ($limpio) { $listaAlumnos += $limpio }
+            }
+        } elseif ($Parametro -match "^\d+$") {
+            $num = [int]$Parametro
+            Write-Host "[*] Generando aula para $num alumnos..." -ForegroundColor Cyan
+            for ($i = 1; $i -le $num; $i++) {
+                $listaAlumnos += ("alumno_{0:D2}" -f $i)
+            }
+        } else {
+            Write-Host "[ERROR] El parámetro debe ser un número o un archivo de texto válido." -ForegroundColor Red
+            exit 1
+        }
+
+        $total = $listaAlumnos.Count
+        if ($total -eq 0) {
+            Write-Host "[ERROR] No se encontraron alumnos para registrar." -ForegroundColor Red
+            exit 1
+        }
+
+        $ipServidor = Obtener-IPLocal
+        New-Item -ItemType Directory -Force -Path $AlumnosDir | Out-Null
+
+        $composeContent = "# Archivo autogenerado para gestión de clases`nservices:`n"
+        $credsText = "================================================================================`n"
+        $credsText += "                 LISTA DE ACCESO A CODE-SERVER PARA ALUMNOS                     `n"
+        $credsText += "================================================================================`n"
+        $credsText += "{0,-18} | {1,-32} | {2,-12} | {3,-6}`n" -f "ALUMNO", "URL DE ACCESO", "PASSWORD", "PUERTO"
+        $credsText += "-------------------+----------------------------------+--------------+--------`n"
+
+        $credsCsv = "Alumno,URL,Password,Puerto,Carpeta_Host`n"
+
+        $idx = 1
+        foreach ($alumno in $listaAlumnos) {
+            $idSeguro = ($alumno.ToLower() -replace '[^a-z0-9]', '_')
+            if (-not $idSeguro) { $idSeguro = "alumno_$idx" }
+
+            $puerto = $BasePort + $idx
+            $pass = ("clase-{0:D2}" -f $idx)
+            $dirAlumno = "$AlumnosDir/$idSeguro"
+            New-Item -ItemType Directory -Force -Path "$dirAlumno/project" | Out-Null
+            New-Item -ItemType Directory -Force -Path "$dirAlumno/config" | Out-Null
+
+            $composeContent += @"
+  $idSeguro:
+    image: temux-code-server:alpine
+    container_name: cs_$idSeguro
+    restart: unless-stopped
+    ports:
+      - "$($puerto):8080"
+    environment:
+      - PORT=8080
+      - AUTH=password
+      - PASSWORD=$pass
+    volumes:
+      - $dirAlumno/project:/home/coder/project
+      - $dirAlumno/config:/home/coder/.config
+    working_dir: /home/coder/project
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 512M
+
+"@
+            $url = "http://$($ipServidor):$puerto"
+            $credsText += "{0,-18} | {1,-32} | {2,-12} | {3,-6}`n" -f $alumno, $url, $pass, $puerto
+            $credsCsv += "`"$alumno`",`"$url`",`"$pass`",$puerto,`"$dirAlumno`"`n"
+            $idx++
+        }
+
+        Set-Content -Path $ComposeFile -Value $composeContent -Encoding UTF8
+        Set-Content -Path $CredsFile -Value $credsText -Encoding UTF8
+        Set-Content -Path $CredsCsv -Value $credsCsv -Encoding UTF8
+
+        Write-Host "====================================================" -ForegroundColor Green
+        Write-Host "  ¡Aula virtual configurada para $total alumnos!    " -ForegroundColor Green
+        Write-Host "====================================================" -ForegroundColor Green
+        Write-Host "Archivos generados:"
+        Write-Host "  • Orquestador Docker:     $ComposeFile" -ForegroundColor Cyan
+        Write-Host "  • Lista de Credenciales:  $CredsFile" -ForegroundColor Yellow
+        Write-Host "  • Archivo para Excel:     $CredsCsv" -ForegroundColor Yellow
+        Write-Host "  • Carpetas de alumnos:    $AlumnosDir/<alumno>/project" -ForegroundColor Cyan
+        Write-Host "`nPara iniciar los contenedores de todos los alumnos ejecuta:" -ForegroundColor White
+        Write-Host "  👉 .\alumnos.ps1 iniciar`n" -ForegroundColor Green
+
+        Get-Content $CredsFile
+    }
+
+    "iniciar" {
+        if (-not (Test-Path $ComposeFile)) {
+            Write-Host "[ERROR] No existe '$ComposeFile'. Primero genera las instancias con: .\alumnos.ps1 crear <numero>" -ForegroundColor Red
+            exit 1
+        }
+        Write-Host "[*] Iniciando instancias de alumnos..." -ForegroundColor Cyan
+        docker compose -f $ComposeFile up -d
+        Write-Host "`n[✔] ¡Todas las instancias están activas!" -ForegroundColor Green
+        Write-Host "Los alumnos ya pueden conectarse desde sus navegadores."
+    }
+
+    "detener" {
+        if (-not (Test-Path $ComposeFile)) {
+            Write-Host "[ERROR] No existe '$ComposeFile'." -ForegroundColor Red
+            exit 1
+        }
+        Write-Host "[*] Deteniendo instancias de alumnos..." -ForegroundColor Yellow
+        docker compose -f $ComposeFile stop
+        Write-Host "[✔] Instancias detenidas." -ForegroundColor Green
+    }
+
+    "reiniciar" {
+        if (-not (Test-Path $ComposeFile)) {
+            Write-Host "[ERROR] No existe '$ComposeFile'." -ForegroundColor Red
+            exit 1
+        }
+        docker compose -f $ComposeFile restart
+        Write-Host "[✔] Instancias reiniciadas." -ForegroundColor Green
+    }
+
+    "estado" {
+        if (-not (Test-Path $ComposeFile)) {
+            Write-Host "[ERROR] No existe '$ComposeFile'." -ForegroundColor Red
+            exit 1
+        }
+        docker compose -f $ComposeFile ps
+    }
+
+    "credenciales" {
+        if (Test-Path $CredsFile) {
+            Get-Content $CredsFile
+        } else {
+            Write-Host "[ERROR] No se ha generado la lista aún. Usa: .\alumnos.ps1 crear <numero>" -ForegroundColor Red
+        }
+    }
+
+    "limpiar" {
+        if (Test-Path $ComposeFile) {
+            docker compose -f $ComposeFile down
+            Write-Host "[✔] Contenedores eliminados. Las carpetas de tareas en '$AlumnosDir' siguen intactas." -ForegroundColor Green
+        }
+    }
+
+    Default {
+        Mostrar-Ayuda
+    }
+}
