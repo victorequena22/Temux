@@ -175,6 +175,36 @@ function ejecutarComando(cmd) {
   });
 }
 
+let construyendoImagenPromise = null;
+
+// Asegurar que la imagen base de Docker esté construida
+async function asegurarImagenDocker() {
+  const imgCheck = await ejecutarComando('docker image inspect temux-code-server:alpine');
+  if (imgCheck.ok) return { ok: true };
+
+  if (construyendoImagenPromise) {
+    return await construyendoImagenPromise;
+  }
+
+  console.log('\n====================================================');
+  console.log('  Construyendo imagen base temux-code-server:alpine ');
+  console.log('  (Solo ocurre la primera vez, toma ~1 o 2 minutos) ');
+  console.log('====================================================');
+
+  construyendoImagenPromise = (async () => {
+    const res = await ejecutarComando('docker build -t temux-code-server:alpine .');
+    construyendoImagenPromise = null;
+    if (!res.ok) {
+      console.error('[ERROR] Falló la construcción de la imagen Docker:', res.error);
+      return { ok: false, error: res.error };
+    }
+    console.log('[✔] ¡Imagen temux-code-server:alpine construida con éxito!\n');
+    return { ok: true };
+  })();
+
+  return await construyendoImagenPromise;
+}
+
 // Verificar o iniciar contenedor del alumno
 async function iniciarContenedorAlumno(alumno) {
   const containerName = `cs_${alumno.cedula}`;
@@ -197,12 +227,12 @@ async function iniciarContenedorAlumno(alumno) {
     }
   }
 
-  // Verificar si la imagen base existe
-  const imgCheck = await ejecutarComando('docker image inspect temux-code-server:alpine');
-  if (!imgCheck.ok) {
+  // Asegurar que la imagen base exista o construirla automáticamente
+  const imgReady = await asegurarImagenDocker();
+  if (!imgReady.ok) {
     return {
       ok: false,
-      error: "La imagen Docker 'temux-code-server:alpine' no está construida en este equipo. Ejecuta en tu terminal: docker build -t temux-code-server:alpine ."
+      error: "Error al construir la imagen Docker: " + (imgReady.error || "Verifica que Docker Desktop esté abierto") + ". También puedes ejecutar en PowerShell: docker build -t temux-code-server:alpine ."
     };
   }
 
