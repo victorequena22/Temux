@@ -65,32 +65,27 @@ Sigue estos sencillos pasos desde la terminal dentro de esta carpeta:
 
 ## 🖥️ ¿Cómo usar las herramientas instaladas?
 
-### 1. Iniciar `code-server` (VS Code Web)
-* **En Termux:**
-  Puedes usar el comando directo creado por el script:
+### 1. Iniciar `code-server` y conectarse desde la Red Local
+El script configura automáticamente `code-server` para escuchar en `0.0.0.0:8080`, permitiendo acceder desde cualquier PC, tablet u otro móvil en la misma red Wi-Fi.
+
+* **Iniciar el servidor:**
+  Ejecuta simplemente:
   ```bash
   start-code
   ```
-  O simplemente:
-  ```bash
-  code-server
-  ```
-* **En Linux:**
-  ```bash
-  code-server
-  ```
-  *(O para mantenerlo siempre encendido como servicio de fondo: `sudo systemctl enable --now code-server@$USER`)*
+  *(Al iniciar, detectará y mostrará automáticamente tu IP local en pantalla).*
 
 * **Acceso desde el navegador:**
-  * Abre tu navegador en: `http://localhost:8080` (o `http://<IP_DE_TU_DISPOSITIVO>:8080`)
-  * **Contraseña por defecto:** `admin`
+  * **En el mismo dispositivo:** `http://localhost:8080`
+  * **Desde tu PC u otro dispositivo en la red Wi-Fi:** `http://<IP_DE_TU_DISPOSITIVO>:8080` *(Ejemplo: `http://192.168.1.35:8080`)*
+  * **Contraseña de acceso por defecto:** `admin`
 
 * **Cambiar configuración o quitar contraseña:**
   Edita el archivo de configuración:
   ```bash
   nano ~/.config/code-server/config.yaml
   ```
-  Ejemplo para entrar sin contraseña:
+  Ejemplo para ingresar sin contraseña:
   ```yaml
   bind-addr: 0.0.0.0:8080
   auth: none

@@ -3,6 +3,7 @@
 # ==============================================================================
 # Script de Instalación Automatizada para Node.js, code-server, tsc y tsx
 # Compatible con: Termux (Android) y Distribuciones Linux (Ubuntu/Debian)
+# Configurado para: Acceso desde la Red Local (Wi-Fi / LAN)
 # ==============================================================================
 
 set -e
@@ -18,6 +19,7 @@ NC='\033[0m' # Sin color
 echo -e "${CYAN}====================================================${NC}"
 echo -e "${CYAN}  Iniciando instalación del Entorno de Desarrollo   ${NC}"
 echo -e "${CYAN}  (Node.js, code-server, TypeScript & tsx)          ${NC}"
+echo -e "${CYAN}  * Configurado para acceso en red local (LAN) *    ${NC}"
 echo -e "${CYAN}====================================================${NC}\n"
 
 # ------------------------------------------------------------------------------
@@ -49,10 +51,10 @@ echo -e "\n${BLUE}==> [Paso 1/5] Actualizando repositorios y paquetes base...${N
 
 if [ "$IS_TERMUX" = true ]; then
     pkg update -y && pkg upgrade -y
-    pkg install -y curl wget git tar
+    pkg install -y curl wget git tar iproute2
 else
     $SUDO apt-get update -y
-    $SUDO apt-get install -y curl wget git build-essential
+    $SUDO apt-get install -y curl wget git build-essential iproute2
 fi
 
 # ------------------------------------------------------------------------------
@@ -103,43 +105,86 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 6. Configuración Inicial de code-server
+# 6. Configuración de code-server para Conexión desde la Red (0.0.0.0:8080)
 # ------------------------------------------------------------------------------
-echo -e "\n${BLUE}==> [Paso 5/5] Configurando code-server...${NC}"
+echo -e "\n${BLUE}==> [Paso 5/5] Configurando code-server para acceso en red...${NC}"
 
 CONFIG_DIR="$HOME/.config/code-server"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
 
 mkdir -p "$CONFIG_DIR"
 
-if [ ! -f "$CONFIG_FILE" ]; then
+if [ -f "$CONFIG_FILE" ]; then
+    # Actualizar bind-addr a 0.0.0.0:8080 si ya existe
+    if grep -q "bind-addr:" "$CONFIG_FILE"; then
+        sed -i -E 's/bind-addr: .*/bind-addr: 0.0.0.0:8080/' "$CONFIG_FILE"
+    else
+        echo "bind-addr: 0.0.0.0:8080" >> "$CONFIG_FILE"
+    fi
+    echo -e "${GREEN}Configuración actualizada para permitir conexiones desde la red (0.0.0.0:8080).${NC}"
+else
     cat <<EOF > "$CONFIG_FILE"
 bind-addr: 0.0.0.0:8080
 auth: password
 password: admin
 cert: false
 EOF
-    echo -e "${GREEN}Archivo de configuración creado en:${NC} $CONFIG_FILE"
+    echo -e "${GREEN}Archivo de configuración creado para acceso en red (0.0.0.0:8080) en:${NC} $CONFIG_FILE"
     echo -e "${YELLOW}Contraseña por defecto establecida a:${NC} admin"
-else
-    echo -e "${YELLOW}Ya existe un archivo de configuración en:${NC} $CONFIG_FILE"
 fi
 
-# En Termux, creamos un comando de acceso rápido 'start-code'
+# En Linux, si ufw está activo, habilitar el puerto 8080
+if [ "$IS_TERMUX" = false ]; then
+    if command -v ufw >/dev/null 2>&1; then
+        if $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
+            echo -e "${CYAN}Habilitando puerto 8080 en el firewall (ufw)...${NC}"
+            $SUDO ufw allow 8080/tcp >/dev/null 2>&1 || true
+        fi
+    fi
+fi
+
+# Crear script de acceso directo 'start-code' con detección dinámica de IP
+LAUNCHER_CONTENT='#!/usr/bin/env bash
+GREEN="\033[0;32m"
+CYAN="\033[0;36m"
+YELLOW="\033[1;33m"
+NC="\033[0m"
+
+IP_LAN=$(ip -o -4 addr show up scope global 2>/dev/null | awk "{print \$4}" | cut -d/ -f1 | head -n 1)
+[ -z "$IP_LAN" ] && IP_LAN=$(hostname -I 2>/dev/null | awk "{print \$1}")
+[ -z "$IP_LAN" ] && IP_LAN=$(ifconfig 2>/dev/null | grep -Eo "inet (addr:)?([0-9]*\.){3}[0-9]*" | grep -v "127.0.0.1" | head -n 1 | awk "{print \$2}" | tr -d "addr:")
+[ -z "$IP_LAN" ] && IP_LAN="localhost"
+
+echo -e "${GREEN}====================================================${NC}"
+echo -e "${GREEN}    Iniciando code-server accesible en red local    ${NC}"
+echo -e "${GREEN}====================================================${NC}"
+echo -e "Acceso local (en este equipo):       ${CYAN}http://localhost:8080${NC}"
+echo -e "Acceso desde tu PC u otra máquina:   ${YELLOW}http://${IP_LAN}:8080${NC}"
+echo -e "Contraseña por defecto:              ${CYAN}admin${NC} (en ~/.config/code-server/config.yaml)"
+echo -e "\033[1;30m(Presiona Ctrl + C para detener el servidor)\033[0m\n"
+
+code-server --bind-addr 0.0.0.0:8080 "$@"
+'
+
 if [ "$IS_TERMUX" = true ]; then
     LAUNCHER_PATH="$PREFIX/bin/start-code"
-    cat << 'EOF' > "$LAUNCHER_PATH"
-#!/data/data/com.termux/files/usr/bin/bash
-echo -e "\033[0;32mIniciando code-server en http://localhost:8080\033[0m"
-echo -e "\033[1;33mPara detenerlo pulsa Ctrl + C\033[0m"
-code-server --bind-addr 0.0.0.0:8080
-EOF
+    echo "$LAUNCHER_CONTENT" > "$LAUNCHER_PATH"
     chmod +x "$LAUNCHER_PATH"
-    echo -e "${GREEN}Comando rápido '${CYAN}start-code${GREEN}' creado exitosamente.${NC}"
+    echo -e "${GREEN}Comando rápido '${CYAN}start-code${GREEN}' creado en:${NC} $LAUNCHER_PATH"
+else
+    LAUNCHER_PATH="/usr/local/bin/start-code"
+    echo "$LAUNCHER_CONTENT" | $SUDO tee "$LAUNCHER_PATH" >/dev/null
+    $SUDO chmod +x "$LAUNCHER_PATH"
+    echo -e "${GREEN}Comando rápido '${CYAN}start-code${GREEN}' creado en:${NC} $LAUNCHER_PATH"
 fi
 
+# Detectar IP para mostrar en el resumen final
+IP_ACTUAL=$(ip -o -4 addr show up scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n 1)
+[ -z "$IP_ACTUAL" ] && IP_ACTUAL=$(hostname -I 2>/dev/null | awk '{print $1}')
+[ -z "$IP_ACTUAL" ] && IP_ACTUAL="<IP_DE_TU_DISPOSITIVO>"
+
 # ------------------------------------------------------------------------------
-# 7. Resumen de Versiones Instaladas
+# 7. Resumen de Versiones e Información de Conexión
 # ------------------------------------------------------------------------------
 echo -e "\n${GREEN}====================================================${NC}"
 echo -e "${GREEN}         ¡Instalación completada con éxito!         ${NC}"
@@ -152,16 +197,13 @@ echo -e "  - tsc:         $(tsc -v 2>/dev/null || echo 'No detectado')"
 echo -e "  - tsx:         $(tsx -v 2>/dev/null || echo 'No detectado')"
 echo -e "  - code-server: $(code-server --version 2>/dev/null | head -n 1 || echo 'No detectado')"
 
-echo -e "\n${YELLOW}¿Cómo usar code-server?${NC}"
-if [ "$IS_TERMUX" = true ]; then
-    echo -e "  1. Ejecuta: ${CYAN}start-code${NC}  (o escribe directamente: ${CYAN}code-server${NC})"
-    echo -e "  2. Abre en tu navegador de Android: ${CYAN}http://localhost:8080${NC}"
-    echo -e "  3. Contraseña por defecto: ${CYAN}admin${NC} (puedes cambiarla en ~/.config/code-server/config.yaml)"
-else
-    echo -e "  1. Ejecuta: ${CYAN}code-server${NC}"
-    echo -e "     (O como servicio: ${CYAN}sudo systemctl enable --now code-server@$USER${NC})"
-    echo -e "  2. Abre en tu navegador: ${CYAN}http://localhost:8080${NC}"
-    echo -e "  3. Contraseña por defecto: ${CYAN}admin${NC} (en ~/.config/code-server/config.yaml)"
-fi
+echo -e "\n${YELLOW}🌐 ¿Cómo acceder a code-server desde tu red?${NC}"
+echo -e "  1. Inicia el servidor ejecutando: ${CYAN}start-code${NC}"
+echo -e "  2. Acceso local (en el mismo dispositivo):"
+echo -e "     👉 ${CYAN}http://localhost:8080${NC}"
+echo -e "  3. Acceso desde tu PC / tablet / otro dispositivo en el mismo Wi-Fi:"
+echo -e "     👉 ${GREEN}http://${IP_ACTUAL}:8080${NC}"
+echo -e "  4. Contraseña de acceso: ${CYAN}admin${NC}"
+echo -e "     (Puedes cambiarla o dejar 'auth: none' en: ~/.config/code-server/config.yaml)"
 
 echo -e "\n${CYAN}====================================================${NC}\n"
