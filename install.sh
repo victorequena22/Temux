@@ -14,6 +14,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # Sin color
 
 echo -e "${CYAN}====================================================${NC}"
@@ -143,27 +144,36 @@ if [ "$IS_TERMUX" = false ]; then
     fi
 fi
 
-# Crear script de acceso directo 'start-code' con detección dinámica de IP
+# Puerto para code-server
+PORT=8080
+
+# Crear script de acceso directo 'start-code' con detección dinámica de IP y Puerto
 LAUNCHER_CONTENT='#!/usr/bin/env bash
 GREEN="\033[0;32m"
 CYAN="\033[0;36m"
 YELLOW="\033[1;33m"
+BOLD="\033[1m"
 NC="\033[0m"
+PORT=8080
 
-IP_LAN=$(ip -o -4 addr show up scope global 2>/dev/null | awk "{print \$4}" | cut -d/ -f1 | head -n 1)
+IP_LAN=$(ip -4 addr show wlan0 2>/dev/null | awk "/inet / {print \$2}" | cut -d/ -f1 | head -n 1)
+[ -z "$IP_LAN" ] && IP_LAN=$(ip -o -4 addr show up scope global 2>/dev/null | awk "{print \$4}" | cut -d/ -f1 | head -n 1)
 [ -z "$IP_LAN" ] && IP_LAN=$(hostname -I 2>/dev/null | awk "{print \$1}")
 [ -z "$IP_LAN" ] && IP_LAN=$(ifconfig 2>/dev/null | grep -Eo "inet (addr:)?([0-9]*\.){3}[0-9]*" | grep -v "127.0.0.1" | head -n 1 | awk "{print \$2}" | tr -d "addr:")
-[ -z "$IP_LAN" ] && IP_LAN="localhost"
+[ -z "$IP_LAN" ] && IP_LAN="127.0.0.1"
 
-echo -e "${GREEN}====================================================${NC}"
-echo -e "${GREEN}    Iniciando code-server accesible en red local    ${NC}"
-echo -e "${GREEN}====================================================${NC}"
-echo -e "Acceso local (en este equipo):       ${CYAN}http://localhost:8080${NC}"
-echo -e "Acceso desde tu PC u otra máquina:   ${YELLOW}http://${IP_LAN}:8080${NC}"
-echo -e "Contraseña por defecto:              ${CYAN}admin${NC} (en ~/.config/code-server/config.yaml)"
+echo -e "\n${YELLOW}════════════════════════════════════════════════════════════${NC}"
+echo -e "  ${GREEN}📡 CODE-SERVER ACTIVO Y ACCESIBLE EN LA RED${NC}"
+echo -e "${YELLOW}════════════════════════════════════════════════════════════${NC}"
+echo -e "  • ${BOLD}IP de este dispositivo:${NC} ${CYAN}${IP_LAN}${NC}"
+echo -e "  • ${BOLD}Puerto de conexión:${NC}     ${CYAN}${PORT}${NC}"
+echo -e "  • ${BOLD}URL Local:${NC}              ${CYAN}http://localhost:${PORT}${NC}"
+echo -e "  • ${BOLD}URL desde tu Red (Wi-Fi):${NC} ${GREEN}http://${IP_LAN}:${PORT}${NC}"
+echo -e "  • ${BOLD}Contraseña:${NC}             ${CYAN}admin${NC} (en ~/.config/code-server/config.yaml)"
+echo -e "${YELLOW}════════════════════════════════════════════════════════════${NC}"
 echo -e "\033[1;30m(Presiona Ctrl + C para detener el servidor)\033[0m\n"
 
-code-server --bind-addr 0.0.0.0:8080 "$@"
+code-server --bind-addr 0.0.0.0:${PORT} "$@"
 '
 
 if [ "$IS_TERMUX" = true ]; then
@@ -179,8 +189,10 @@ else
 fi
 
 # Detectar IP para mostrar en el resumen final
-IP_ACTUAL=$(ip -o -4 addr show up scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n 1)
+IP_ACTUAL=$(ip -4 addr show wlan0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
+[ -z "$IP_ACTUAL" ] && IP_ACTUAL=$(ip -o -4 addr show up scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n 1)
 [ -z "$IP_ACTUAL" ] && IP_ACTUAL=$(hostname -I 2>/dev/null | awk '{print $1}')
+[ -z "$IP_ACTUAL" ] && IP_ACTUAL=$(ifconfig 2>/dev/null | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -n 1 | awk '{print $2}' | tr -d 'addr:')
 [ -z "$IP_ACTUAL" ] && IP_ACTUAL="<IP_DE_TU_DISPOSITIVO>"
 
 # ------------------------------------------------------------------------------
@@ -197,13 +209,15 @@ echo -e "  - tsc:         $(tsc -v 2>/dev/null || echo 'No detectado')"
 echo -e "  - tsx:         $(tsx -v 2>/dev/null || echo 'No detectado')"
 echo -e "  - code-server: $(code-server --version 2>/dev/null | head -n 1 || echo 'No detectado')"
 
-echo -e "\n${YELLOW}🌐 ¿Cómo acceder a code-server desde tu red?${NC}"
-echo -e "  1. Inicia el servidor ejecutando: ${CYAN}start-code${NC}"
-echo -e "  2. Acceso local (en el mismo dispositivo):"
-echo -e "     👉 ${CYAN}http://localhost:8080${NC}"
-echo -e "  3. Acceso desde tu PC / tablet / otro dispositivo en el mismo Wi-Fi:"
-echo -e "     👉 ${GREEN}http://${IP_ACTUAL}:8080${NC}"
-echo -e "  4. Contraseña de acceso: ${CYAN}admin${NC}"
-echo -e "     (Puedes cambiarla o dejar 'auth: none' en: ~/.config/code-server/config.yaml)"
-
-echo -e "\n${CYAN}====================================================${NC}\n"
+echo -e "\n${YELLOW}════════════════════════════════════════════════════════════${NC}"
+echo -e "  ${GREEN}📡 DATOS DE CONEXIÓN A CODE-SERVER (RED / NAVEGADOR)${NC}"
+echo -e "${YELLOW}════════════════════════════════════════════════════════════${NC}"
+echo -e "  • ${BOLD}Dirección IP:${NC}            ${CYAN}${IP_ACTUAL}${NC}"
+echo -e "  • ${BOLD}Puerto:${NC}                  ${CYAN}${PORT}${NC}"
+echo -e "  • ${BOLD}URL Local (en el equipo):${NC} ${CYAN}http://localhost:${PORT}${NC}"
+echo -e "  • ${BOLD}URL en Red (PC / Wi-Fi):${NC}  ${GREEN}http://${IP_ACTUAL}:${PORT}${NC}"
+echo -e "  • ${BOLD}Contraseña de acceso:${NC}     ${CYAN}admin${NC}"
+echo -e "${YELLOW}════════════════════════════════════════════════════════════${NC}"
+echo -e "  👉 Para iniciar el servidor escribe: ${CYAN}start-code${NC}"
+echo -e "  👉 Configuración y contraseña en:    ${CYAN}~/.config/code-server/config.yaml${NC}"
+echo -e "${YELLOW}════════════════════════════════════════════════════════════${NC}\n"
