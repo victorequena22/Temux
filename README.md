@@ -161,9 +161,19 @@ Sistema bajo demanda (*on-demand*): En lugar de tener 136 contenedores encendido
 5. Todo su trabajo se guarda en la carpeta local del profesor: `./alumnos/<cedula>/project`.
 
 ### ¿Cómo iniciarlo como profesor?
-* **En Windows:** Haz doble clic en `iniciar-portal.bat` (o ejecuta `node portal.js`).
+* **En Windows:** Haz doble clic en `iniciar-portal.bat` (o ejecuta `node portal.js` / `.\iniciar-portal.ps1`).
 * **En Linux / Mac / WSL:** Ejecuta `./iniciar-portal.sh`.
-* **Panel de Control del Profesor:** Abre en tu navegador `http://localhost:3000/admin` para ver en tiempo real quiénes están conectados y apagar todas las instancias al terminar la clase.
+* **Panel de Control y Asistencia:** Abre en tu navegador `http://localhost:3000/admin`.
+
+---
+
+## 📋 Control Diario de Asistencia y Reportes en Excel
+
+Cada vez que un estudiante ingresa su cédula en el portal para abrir su entorno, el sistema **registra automáticamente su asistencia del día**.
+
+* **Almacenamiento por fecha:** Los registros se guardan en la carpeta `./asistencia/asistencia_YYYY-MM-DD.csv` y `.json`.
+* **Descarga para Excel:** Desde el panel de administración (`/admin`), el profesor puede pulsar **"📥 Descargar en Excel (.CSV)"** para obtener la planilla oficial de asistencia del día con todos los alumnos marcados como **PRESENTE** o **AUSENTE**, hora de ingreso e IP.
+* **Estadísticas en vivo:** Visualiza en tiempo real el porcentaje y número de asistentes desglosado por **Sección 1, Sección 2 y Sección 3**.
 
 
 ---
