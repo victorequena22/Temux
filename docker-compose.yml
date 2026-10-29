@@ -1,0 +1,21 @@
+services:
+  code-server:
+    build: .
+    image: temux-code-server:alpine
+    container_name: temux-code-server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - AUTH=password
+      - PASSWORD=admin
+    volumes:
+      # Montar carpeta de proyectos para persistencia de archivos
+      - ./workspace:/home/coder/project
+      # Persistencia de extensiones y configuraciones de VS Code
+      - code-server-config:/home/coder/.config
+    working_dir: /home/coder/project
+
+volumes:
+  code-server-config:

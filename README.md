@@ -115,3 +115,34 @@ echo 'console.log("¡TypeScript funcionando correctamente!");' > index.ts
   tsc index.ts
   node index.js
   ```
+
+---
+
+## 🐳 Opción con Docker (Alpine Linux)
+
+Si prefieres ejecutar todo este entorno aislado dentro de un contenedor ultraligero basado en **Alpine Linux**, tienes a tu disposición el `Dockerfile` y `docker-compose.yml`.
+
+### 1. Levantar con Docker Compose (Recomendado):
+```bash
+docker compose up -d
+```
+Esto construirá la imagen y levantará el contenedor en segundo plano con persistencia en `./workspace`.
+
+### 2. O construir y correr manualmente con Docker CLI:
+```bash
+# Construir la imagen
+docker build -t temux-code-server:alpine .
+
+# Iniciar el contenedor
+docker run -d \
+  --name temux-code-server \
+  -p 8080:8080 \
+  -e PASSWORD=admin \
+  -v "$(pwd)/workspace:/home/coder/project" \
+  temux-code-server:alpine
+```
+
+### 3. Acceder al contenedor:
+* Abre tu navegador en `http://localhost:8080` (o `http://<IP_DE_TU_PC>:8080`).
+* Contraseña: `admin`.
+
