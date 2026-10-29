@@ -9,7 +9,9 @@ Script de instalación rápida todo-en-uno para configurar un entorno de desarro
 1. **Node.js (LTS) & npm**: Entorno de ejecución de JavaScript del lado del servidor.
 2. **code-server**: Visual Studio Code accesible desde cualquier navegador web.
 3. **tsc (`typescript`)**: Compilador oficial de TypeScript instalado globalmente.
-4. **tsx**: Ejecutor moderno y ultra-rápido de archivos TypeScript (con soporte para `--watch` y ESM) sin necesidad de compilar manualmente.
+4. **tsx**: Ejecutor moderno y ultra-rápido de archivos TypeScript (con soporte para `--watch` y ESM).
+5. **readline-sync & @types/readline-sync**: Lectura sincrónica de entradas por teclado desde la consola.
+6. **chalk & @types/chalk**: Salida en consola con colores y estilos.
 
 ---
 

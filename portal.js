@@ -205,6 +205,77 @@ async function asegurarImagenDocker() {
   return await construyendoImagenPromise;
 }
 
+// Inicializar plantilla de proyecto con readline-sync y chalk para el alumno
+function inicializarProyectoAlumno(dirProject, alumno) {
+  const filePackage = path.join(dirProject, 'package.json');
+  const fileTsConfig = path.join(dirProject, 'tsconfig.json');
+  const fileIndex = path.join(dirProject, 'index.ts');
+
+  if (!fs.existsSync(filePackage)) {
+    const pkg = {
+      name: `proyecto-ci-${alumno.cedula}`,
+      version: "1.0.0",
+      description: `Entorno de Programación I - ${alumno.nombre}`,
+      type: "module",
+      scripts: {
+        start: "tsx index.ts",
+        dev: "tsx watch index.ts",
+        build: "tsc"
+      },
+      dependencies: {
+        "chalk": "^5.3.0",
+        "readline-sync": "^1.4.10"
+      },
+      devDependencies: {
+        "@types/chalk": "^2.2.4",
+        "@types/node": "^20.0.0",
+        "@types/readline-sync": "^1.4.8",
+        "typescript": "^5.0.0",
+        "tsx": "^4.0.0"
+      }
+    };
+    fs.writeFileSync(filePackage, JSON.stringify(pkg, null, 2), 'utf8');
+  }
+
+  if (!fs.existsSync(fileTsConfig)) {
+    const tsconfig = {
+      compilerOptions: {
+        target: "ES2022",
+        module: "NodeNext",
+        moduleResolution: "NodeNext",
+        esModuleInterop: true,
+        strict: true,
+        skipLibCheck: true,
+        forceConsistentCasingInFileNames: true
+      }
+    };
+    fs.writeFileSync(fileTsConfig, JSON.stringify(tsconfig, null, 2), 'utf8');
+  }
+
+  if (!fs.existsSync(fileIndex)) {
+    const code = `import readlineSync from 'readline-sync';
+import chalk from 'chalk';
+
+console.clear();
+console.log(chalk.bold.blue('=============================================='));
+console.log(chalk.bold.cyan('  UCLA - Decanato de Ciencias y Tecnología   '));
+console.log(chalk.bold.yellow('          INT214 - PROGRAMACIÓN I            '));
+console.log(chalk.bold.blue('==============================================\\n'));
+console.log(chalk.green('Estudiante: ${alumno.nombre}'));
+console.log(chalk.gray('Cédula: ${alumno.cedula} | Sección: ${alumno.seccion}\\n'));
+
+// Ejemplo interactivo con readline-sync y chalk
+const nombre = readlineSync.question(chalk.cyan('¿Cómo te llamas? '));
+const edad = readlineSync.questionInt(chalk.cyan('¿Cuántos años tienes? '));
+
+console.log(chalk.bold.magenta(\`\\n¡Hola, \${nombre}! Tienes \${edad} años.\`));
+console.log(chalk.green('Tu entorno con readline-sync y chalk está listo para usar.'));
+console.log(chalk.gray('Para ejecutar tu código escribe en la terminal: tsx index.ts\\n'));
+`;
+    fs.writeFileSync(fileIndex, code, 'utf8');
+  }
+}
+
 // Verificar o iniciar contenedor del alumno
 async function iniciarContenedorAlumno(alumno) {
   const containerName = `cs_${alumno.cedula}`;
@@ -213,6 +284,9 @@ async function iniciarContenedorAlumno(alumno) {
 
   fs.mkdirSync(dirProject, { recursive: true });
   fs.mkdirSync(dirConfig, { recursive: true });
+
+  // Inicializar archivos del proyecto (package.json, tsconfig.json, index.ts con readline-sync y chalk)
+  inicializarProyectoAlumno(dirProject, alumno);
 
   const check = await ejecutarComando(`docker inspect --format="{{.State.Running}}" ${containerName}`);
   

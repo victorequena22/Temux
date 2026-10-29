@@ -95,14 +95,14 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 5. Instalación Global de TypeScript (tsc) y tsx
+# 5. Instalación Global de TypeScript (tsc), tsx, readline-sync y chalk
 # ------------------------------------------------------------------------------
-echo -e "\n${BLUE}==> [Paso 4/5] Instalando tsc (TypeScript) y tsx globalmente con npm...${NC}"
+echo -e "\n${BLUE}==> [Paso 4/5] Instalando tsc, tsx, readline-sync y chalk globalmente...${NC}"
 
 if [ "$IS_TERMUX" = true ]; then
-    npm install -g typescript tsx
+    npm install -g typescript tsx readline-sync @types/readline-sync chalk @types/chalk
 else
-    $SUDO npm install -g typescript tsx
+    $SUDO npm install -g typescript tsx readline-sync @types/readline-sync chalk @types/chalk
 fi
 
 # ------------------------------------------------------------------------------
