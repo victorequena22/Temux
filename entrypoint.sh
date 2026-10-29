@@ -6,10 +6,9 @@ AUTH_MODE="${AUTH:-password}"
 export PASSWORD="${PASSWORD:-admin}"
 
 echo "===================================================="
-echo "  Iniciando code-server en Alpine Linux"
+echo "  Iniciando code-server UCLA"
 echo "  Puerto:                ${PORT}"
 echo "  Autenticación:         ${AUTH_MODE}"
-echo "  Contraseña de acceso:  ${PASSWORD}"
 echo "  Directorio de trabajo: /home/coder/project"
 echo "===================================================="
 
