@@ -19,15 +19,13 @@ Una vez que subas este script a tu repositorio en GitHub, podrás instalarlo en 
 
 ### Con `curl`:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<TU_USUARIO>/<TU_REPOSITORIO>/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/victorequena22/Temux/main/install.sh | bash
 ```
 
 ### O con `wget`:
 ```bash
-wget -qO- https://raw.githubusercontent.com/<TU_USUARIO>/<TU_REPOSITORIO>/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/victorequena22/Temux/main/install.sh | bash
 ```
-
-*(Reemplaza `<TU_USUARIO>` y `<TU_REPOSITORIO>` por tu usuario y el nombre de tu repositorio en GitHub).*
 
 ---
 
@@ -59,7 +57,7 @@ Sigue estos sencillos pasos desde la terminal dentro de esta carpeta:
 
 6. **Vincula tu repositorio remoto y sube el código:**
    ```bash
-   git remote add origin https://github.com/<TU_USUARIO>/<TU_REPOSITORIO>.git
+   git remote add origin https://github.com/victorequena22/Temux.git
    git push -u origin main
    ```
 
