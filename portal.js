@@ -197,6 +197,15 @@ async function iniciarContenedorAlumno(alumno) {
     }
   }
 
+  // Verificar si la imagen base existe
+  const imgCheck = await ejecutarComando('docker image inspect temux-code-server:alpine');
+  if (!imgCheck.ok) {
+    return {
+      ok: false,
+      error: "La imagen Docker 'temux-code-server:alpine' no está construida en este equipo. Ejecuta en tu terminal: docker build -t temux-code-server:alpine ."
+    };
+  }
+
   const volProject = dirProject.replace(/\\/g, '/');
   const volConfig = dirConfig.replace(/\\/g, '/');
 
@@ -954,7 +963,7 @@ function renderAdminView(fechaHoy) {
 }
 
 // Iniciar servidor
-server.listen(PORT_PORTAL, '0.0.0.0', () => {
+server.listen(PORT_PORTAL, '0.0.0.0', async () => {
   const ip = obtenerIpLocal();
   const { fecha } = obtenerFechaYHora();
   console.log('====================================================');
@@ -967,5 +976,16 @@ server.listen(PORT_PORTAL, '0.0.0.0', () => {
   console.log('====================================================');
   console.log(`  Fecha de clase activa: ${fecha}`);
   console.log(`  Total alumnos registrados: ${alumnos.length}`);
+
+  // Verificar si la imagen base de Docker está construida
+  const imgCheck = await ejecutarComando('docker image inspect temux-code-server:alpine');
+  if (!imgCheck.ok) {
+    console.log('\n[AVISO] La imagen temux-code-server:alpine aún no está construida.');
+    console.log('Para construirla ejecuta en tu terminal:');
+    console.log('👉 docker build -t temux-code-server:alpine .\n');
+  } else {
+    console.log('  [✔] Imagen temux-code-server:alpine lista.');
+  }
+
   console.log('  Listo para recibir conexiones...');
 });
