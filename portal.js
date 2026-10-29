@@ -163,12 +163,15 @@ const server = http.createServer(async (req, res) => {
         // Crear/Iniciar contenedor
         const resultado = await iniciarContenedorAlumno(alumno);
         if (!resultado.ok) {
+          console.error(`[ERROR] No se pudo iniciar el contenedor para ${alumno.nombre} (${alumno.cedula}):`, resultado.error);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             ok: false,
             error: 'No se pudo iniciar la instancia de Docker: ' + resultado.error
           }));
         }
+
+        console.log(`[LOGIN DINÁMICO] ${alumno.nombre} (C.I: ${alumno.cedula}) - Sec. ${alumno.seccion} -> Contenedor cs_${alumno.cedula} en puerto ${alumno.puerto} [Estado: ${resultado.status}]`);
 
         const ipDestino = (clientHost === 'localhost' || clientHost === '127.0.0.1') ? 'localhost' : clientHost;
         const urlDestino = `http://${ipDestino}:${alumno.puerto}`;
