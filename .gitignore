@@ -15,4 +15,9 @@ Thumbs.db
 # Datos de alumnos y asistencias en ejecucion
 alumnos/
 asistencia/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 
