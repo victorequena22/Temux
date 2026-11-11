@@ -51,6 +51,9 @@ fi
 echo -e "\n${BLUE}==> [Paso 1/5] Actualizando repositorios y paquetes base...${NC}"
 
 if [ "$IS_TERMUX" = true ]; then
+    echo -e "${CYAN}Habilitando Termux User Repository (TUR)...${NC}"
+    pkg install -y tur-repo
+    # Refresh after enabling TUR so code-server and its Node.js runtime are upgraded together.
     pkg update -y && pkg upgrade -y
     pkg install -y curl wget git tar iproute2
 else
@@ -81,8 +84,6 @@ fi
 echo -e "\n${BLUE}==> [Paso 3/5] Instalando code-server...${NC}"
 
 if [ "$IS_TERMUX" = true ]; then
-    echo -e "${CYAN}Instalando Termux User Repository (tur-repo)...${NC}"
-    pkg install -y tur-repo
     echo -e "${CYAN}Instalando paquete code-server desde TUR...${NC}"
     pkg install -y code-server
 else
@@ -92,6 +93,27 @@ else
     else
         echo -e "${GREEN}code-server ya se encuentra instalado: $(code-server -v | head -n 1)${NC}"
     fi
+fi
+
+# Fail here rather than reporting a successful install when code-server's Node
+# runtime cannot start (for example, because Termux packages are out of sync).
+if ! command -v code-server >/dev/null 2>&1; then
+    echo -e "${RED}[ERROR] code-server no quedó instalado o no está disponible en PATH.${NC}"
+    exit 1
+fi
+
+if CODE_SERVER_VERSION=$(code-server --version 2>&1); then
+    echo "$CODE_SERVER_VERSION"
+else
+    echo "$CODE_SERVER_VERSION"
+    echo -e "${RED}[ERROR] code-server está instalado, pero no puede ejecutarse.${NC}"
+    if [ "$IS_TERMUX" = true ] && printf '%s' "$CODE_SERVER_VERSION" | grep -q '_ZNSt6__ndk113__hash_memoryEPKvm'; then
+        echo -e "${YELLOW}Este símbolo coincide con un problema reportado para code-server de TUR en Termux de Google Play.${NC}"
+        echo -e "${YELLOW}Reinstalar libc++, Node.js o code-server no corrige esta incompatibilidad.${NC}"
+        echo -e "Consulta el reporte: https://github.com/termux-play-store/termux-packages/issues/27"
+        echo -e "${YELLOW}Usa Termux de F-Droid o GitHub. Antes de migrar, respalda tus archivos; las firmas de las distribuciones pueden diferir.${NC}"
+    fi
+    exit 1
 fi
 
 # ------------------------------------------------------------------------------
@@ -207,7 +229,7 @@ echo -e "  - Node.js:     $(node -v 2>/dev/null || echo 'No detectado')"
 echo -e "  - npm:         $(npm -v 2>/dev/null || echo 'No detectado')"
 echo -e "  - tsc:         $(tsc -v 2>/dev/null || echo 'No detectado')"
 echo -e "  - tsx:         $(tsx -v 2>/dev/null || echo 'No detectado')"
-echo -e "  - code-server: $(code-server --version 2>/dev/null | head -n 1 || echo 'No detectado')"
+echo -e "  - code-server: $(code-server --version 2>/dev/null | head -n 1)"
 
 echo -e "\n${YELLOW}════════════════════════════════════════════════════════════${NC}"
 echo -e "  ${GREEN}📡 DATOS DE CONEXIÓN A CODE-SERVER (RED / NAVEGADOR)${NC}"

@@ -93,6 +93,12 @@ echo 'console.log("¡TypeScript funcionando correctamente!");' > index.ts
   node index.js
   ```
 
+### Solución de problemas: error del enlazador al iniciar code-server
+
+Si aparece `CANNOT LINK EXECUTABLE` junto al símbolo `_ZNSt6__ndk113__hash_memoryEPKvm`, no sigas reinstalando `libc++`, Node.js ni `code-server`: el mismo error está reportado para `code-server` de TUR en Termux de Google Play ([reporte](https://github.com/termux-play-store/termux-packages/issues/27)). El instalador identifica este caso y se detiene con un mensaje explicativo.
+
+La alternativa es migrar a Termux de F-Droid o GitHub y luego volver a instalar los paquetes. **Respalda primero los archivos de Termux**: según las firmas de las distribuciones, puede ser necesario desinstalar la aplicación actual y eso borra sus datos. No instales una distribución encima de otra sin seguir sus instrucciones de migración.
+
 ---
 
 ## 🐳 Opción con Docker (Alpine Linux)
